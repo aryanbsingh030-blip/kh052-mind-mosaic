@@ -1,0 +1,3 @@
+# Install the API and AI engine dependencies from the full source tree.
+-r src/project-source-code/backend/requirements.txt
+-r src/project-source-code/ai/requirements.txt

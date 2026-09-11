@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # Database Service (Production PostgreSQL)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: skill_exchange_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-skilluser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-skillpass123}
+      POSTGRES_DB: ${POSTGRES_DB:-skill_exchange}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-skilluser} -d ${POSTGRES_DB:-skill_exchange}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skill_exchange_net
+
+  # ---------------------------------------------------------------------------
+  # Local AI Provider (Ollama - Optional local model execution)
+  # ---------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: skill_exchange_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - skill_exchange_net
+
+  # ---------------------------------------------------------------------------
+  # FastAPI Backend Service
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: skill_exchange_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-skilluser}:${POSTGRES_PASSWORD:-skillpass123}@postgres:5432/${POSTGRES_DB:-skill_exchange}
+      - AI_PROVIDER=${AI_PROVIDER:-mock}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_API_URL=${LLM_API_URL:-}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-in-production-secret-token-12345}
+      - CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000","http://localhost:80"]
+      - BACKEND_HOST=0.0.0.0
+      - BACKEND_PORT=8000
+    ports:
+      - "8000:8000"
+    networks:
+      - skill_exchange_net
+
+  # ---------------------------------------------------------------------------
+  # Next.js Frontend Service
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: skill_exchange_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NODE_ENV=production
+    ports:
+      - "3000:3000"
+    networks:
+      - skill_exchange_net
+
+volumes:
+  postgres_data:
+  ollama_data:
+
+networks:
+  skill_exchange_net:
+    driver: bridge

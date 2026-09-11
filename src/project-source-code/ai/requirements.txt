@@ -1,0 +1,7 @@
+# AI Skill Exchange — AI Engine Dependencies
+# Note: These are for the full AI engine. The mock provider has zero deps.
+networkx>=3.0
+# Future (Phase 2):
+# sentence-transformers>=2.0.0
+# scikit-learn>=1.0.0
+# torch>=2.0.0
