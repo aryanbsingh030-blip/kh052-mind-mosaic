@@ -1,4 +1,4 @@
-# KH001-TeamName - AI Skill Exchange
+# KH053-MIND MOSAIC - AI Skill Exchange
 
 AI Skill Exchange is an offline-first, campus-wide platform that connects students through complementary skills, learning goals, availability, and project interests.
 
